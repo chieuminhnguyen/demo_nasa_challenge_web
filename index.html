@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NASA SPHEREx & Planet X — Interactive Sky Map (Demo Phần A)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css" />
+  <!-- Aladin Lite v3 (Tùy chọn đối chiếu ảnh khảo sát bầu trời thực tế AllWISE từ CDS Strasbourg) -->
+  <script type="text/javascript" src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8" defer></script>
+</head>
+<body>
+
+  <!-- ========================================================================
+       1. THANH TÌM KIẾM THÔNG MINH (INPUT LAYER: CƠ BẢN + CHUYÊN GIA 3 THÔNG SỐ)
+       ======================================================================== -->
+  <header class="top-header">
+    <div class="header-main-row">
+      <!-- Thương hiệu dự án -->
+      <div class="brand-box">
+        <div class="brand-badge">🛰️</div>
+        <div class="brand-title">SPHEREx</div>
+      </div>
+
+      <!-- Khung Search Bar tích hợp (Mặc định ở chế độ Basic-Only mở rộng tối đa) -->
+      <div id="searchBarContainer" class="search-bar-container basic-only">
+        
+        <!-- PHẦN 1: Tìm kiếm Cơ bản cho người mới (Bảng xếp hạng thiên thể + Name Resolver) -->
+        <div class="name-search-wrapper">
+          <div class="name-input-box">
+            <label class="input-group-label" for="nameSearchInput">
+              🌟 Tìm theo tên thiên thể (Dành cho người mới)
+            </label>
+            <div class="name-input-row">
+              <input
+                id="nameSearchInput"
+                type="text"
+                class="astro-input"
+                placeholder="VD: Sedna, Orion, Andromeda, Eris..."
+                autocomplete="off"
+              />
+              <button id="btnResolveName" class="btn-secondary" title="Tự động đổi tên thiên thể sang tọa độ RA & Dec (Phím Enter)">
+                🔍 Tìm tên
+              </button>
+              <button id="btnToggleCatalog" class="btn-secondary" title="Mở bảng xếp hạng các thiên thể được yêu thích nhất">
+                🏆 Top Gợi Ý ▾
+              </button>
+              <button id="btnToggleExpertCoords" type="button" class="btn-secondary btn-expert-toggle" title="Mở / Thu gọn chế độ nhập tọa độ thủ công RA & Dec (Dành cho Chuyên gia)">
+                🧭 Tọa độ (Expert)
+              </button>
+            </div>
+          </div>
+
+          <!-- Dropdown Bảng Xếp Hạng & Đề Xuất Thiên Thể (Curated Database 0ms) -->
+          <div id="curatedDropdown" class="curated-dropdown hidden">
+            <div class="curated-header">
+              <span class="curated-title">🏆 Bảng Xếp Hạng Thiên Thể Nổi Bật (Click để tự điền RA/Dec & Bay tới ngay)</span>
+              <div class="cat-tabs">
+                <button class="cat-tab active" data-cat="all">Tất cả</button>
+                <button class="cat-tab" data-cat="spherex-irsa">🛰️ 100 Mẫu SPHEREx IRSA</button>
+                <button class="cat-tab" data-cat="benchmark">🧪 Benchmark NASA (5)</button>
+                <button class="cat-tab" data-cat="planet-x">🎯 Săn Planet X</button>
+                <button class="cat-tab" data-cat="wonder">🌌 Kỳ quan Vũ trụ</button>
+                <button class="cat-tab" data-cat="brown-dwarf">🪐 Sao lùn nâu</button>
+              </div>
+            </div>
+            <div id="curatedGrid" class="curated-grid"></div>
+          </div>
+        </div>
+
+        <div id="searchDivider" class="search-divider"></div>
+
+        <!-- PHẦN 2: 3 Ô Thông Số Đầu Vào (Ô 1: RA, Ô 2: Dec, Ô 3: FOV + Nút Search) -->
+        <div id="coordsInputsGroup" class="coords-inputs-group">
+          
+          <!-- Ô 1: RA (0°→360°) -->
+          <div class="param-box">
+            <label class="input-group-label" for="raInput">
+              Ô 1: RA (0°→360°)
+            </label>
+            <input
+              id="raInput"
+              type="text"
+              class="astro-input"
+              placeholder="VD: 56.839 hoặc 03h47m21s"
+              value="56.8392"
+            />
+          </div>
+
+          <!-- Ô 2: Dec (-90°→+90°) -->
+          <div class="param-box">
+            <label class="input-group-label" for="decInput">
+              Ô 2: Dec (-90°→+90°)
+            </label>
+            <input
+              id="decInput"
+              type="text"
+              class="astro-input"
+              placeholder="VD: +11.964 hoặc +11d57m50s"
+              value="11.9644"
+            />
+          </div>
+
+          <!-- Ô 3: FOV (Zoom Level) -->
+          <div class="param-box fov-box">
+            <label class="input-group-label" for="fovSelect">
+              Ô 3: FOV (Zoom Level)
+            </label>
+            <div class="fov-controls-row">
+              <select id="fovSelect" class="astro-select fov-select" title="Chọn nhanh góc mở quan sát">
+                <option value="0.05">0.05°</option>
+                <option value="0.1">0.10°</option>
+                <option value="0.25" selected>0.25° (Chuẩn)</option>
+                <option value="0.5">0.50°</option>
+                <option value="1">1.00°</option>
+                <option value="5">5.00°</option>
+                <option value="20">20.0°</option>
+                <option value="custom">Tùy chỉnh</option>
+              </select>
+              <div class="fov-slider-wrap">
+                <input
+                  id="fovSlider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value="38"
+                  class="fov-slider"
+                  title="Kéo thanh trượt để thu phóng FOV (0.02° đến 60°)"
+                />
+                <span id="fovValueLabel" class="fov-badge">0.25°</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nút bấm Search (hoặc nhấn Enter) -->
+          <button id="btnSearchGo" class="btn-go" title="Thực thi tìm kiếm & bay camera đến tọa độ (Phím Enter)">
+            Search
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Thanh cảnh báo Kiểm tra giới hạn (Validation / Auto-conversion Banner) -->
+    <div id="validationBanner" class="validation-banner hidden">
+      <span id="validationText"></span>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       2. KHÔNG GIAN LÀM VIỆC CHÍNH: KHUNG BẢN ĐỒ (OUTPUT 1) + INSPECTOR (OUTPUT 2 & 3)
+       ======================================================================== -->
+  <main class="workspace-main">
+    
+    <!-- PHẦN DIỆN TÍCH (FRAME) NHÚNG BẢN ĐỒ TƯƠNG TÁC (OUTPUT 1: VISUAL OUTPUT) -->
+    <section class="map-frame-section">
+      
+      <!-- Canvas Bản đồ Bầu trời Tương tác (Kéo thả Pan, Lăn chuột Zoom, Nhấp đúp chọn điểm) -->
+      <canvas id="skyMapCanvas"></canvas>
+
+      <!-- Khung Aladin Lite v3 dự phòng cho chế độ đối chiếu ảnh thật -->
+      <div id="aladin-lite-div" class="hidden"></div>
+
+      <!-- Thẻ Nổi Chú Thích Cạnh Tâm Ngắm (Floating Target HUD Card) -->
+      <div id="floatingTargetCard" class="floating-target-card">
+        <button id="btnCloseFloatingCard" type="button" class="btn-close-card" title="Đóng thẻ thông tin này (✕)">✕</button>
+        <div id="cardCategory" class="card-cat-tag">🎯 Ứng viên săn Planet X</div>
+        <div id="cardTitle" class="card-title">90377 Sedna</div>
+        <div id="cardCoordsDeg" class="card-coords-deg">RA: 56.8392° | Dec: +11.9644°</div>
+        <div id="cardCoordsHMS" class="card-coords-hms">03h 47m 21.4s • +11° 57' 51.8"</div>
+        <div id="cardDistance" class="card-distance">Khoảng cách: 84.2 AU</div>
+      </div>
+
+      <!-- Nút Mini Mở Lại Thẻ khi bị đóng (HUD Mini Pill) -->
+      <button id="btnReopenFloatingCard" type="button" class="btn-reopen-card hidden" title="Mở lại thẻ thông tin thiên thể (Phím tắt: I)">
+        <span class="reopen-icon">ℹ️</span>
+        <span class="reopen-text">Hiện thẻ</span>
+      </button>
+
+      <!-- Thanh Điều Khiển Tương Tác Canvas phía dưới (GPU Brightness/Contrast + 102 Dải Sóng) -->
+      <div class="map-bottom-dock">
+        <div class="shader-control-item">
+          <span>☀️ Độ sáng:</span>
+          <input id="brightnessSlider" type="range" min="-40" max="45" value="0" />
+        </div>
+
+        <div class="shader-control-item">
+          <span>◐ Tương phản:</span>
+          <input id="contrastSlider" type="range" min="0.5" max="2.4" step="0.05" value="1.15" />
+        </div>
+
+        <button id="btnAutoContrast" class="btn-secondary" title="Tự động cân bằng sáng dựa trên Metadata Độ sáng nền (ZODI)">
+          ✨ Auto-Contrast
+        </button>
+
+        <div class="shader-control-item">
+          <label style="cursor:pointer; display:flex; align-items:center; gap:5px;">
+            <input id="toggleZodi" type="checkbox" />
+            <span>Khử bụi Hoàng Đạo (ZODI)</span>
+          </label>
+        </div>
+
+        <div class="shader-control-item">
+          <label style="cursor:pointer; display:flex; align-items:center; gap:5px;">
+            <input id="toggleGrid" type="checkbox" checked />
+            <span>Lưới RA/Dec</span>
+          </label>
+        </div>
+
+        <div class="shader-control-item">
+          <label style="cursor:pointer; display:flex; align-items:center; gap:5px;" title="Bật / Tắt thẻ thông tin mục tiêu nổi cạnh tâm ngắm">
+            <input id="toggleTargetCard" type="checkbox" checked />
+            <span>Thẻ HUD</span>
+          </label>
+        </div>
+
+        <div class="shader-control-item band-slider-item">
+          <span id="bandLabel" style="font-family:var(--font-mono); color:#ff9a76; min-width:210px;">
+            Band 42/102 (2.46 µm • Array 3)
+          </span>
+          <input id="bandSlider" type="range" min="1" max="102" value="42" />
+        </div>
+
+        <button id="btnDockMotionPlayer" type="button" class="btn-secondary btn-dock-motion" title="Mở Cosmic Motion Animation (Phát chuỗi Epoch thực tế)">
+          🎬 Cosmic Motion
+        </button>
+
+        <div id="hoverCoordsText" class="hover-coords-bar">
+          Con trỏ: Kéo chuột để Pan • Lăn chuột để Zoom • Nhấp đúp để chọn điểm
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================================
+         3. INSPECTOR HUD DRAWER (OUTPUT 2: DỮ LIỆU HỆ THỐNG & OUTPUT 3: URL SHARE)
+         ====================================================================== -->
+    <aside class="inspector-drawer">
+      
+      <!-- KHỐI 1: BỘ CHỌN ĐA THỜI ĐIỂM & ĐA PHỔ (DUAL-EPOCH & BAND SELECTOR) -->
+      <div class="drawer-section">
+        <div class="section-header">
+          <span class="section-title">⏱️ 1. SO SÁNH ĐA THỜI ĐIỂM & ĐA PHỔ</span>
+          <span id="hudEpochBadge" class="section-tag">MULTI-EPOCH</span>
+        </div>
+
+        <!-- Trạng thái kết nối NASA IRSA -->
+        <div id="irsaLiveStatusRow" style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;">
+          <span id="irsaLiveBadge" class="sync-badge syncing" style="font-size:10px; padding:2px 7px;">
+            🛰️ NASA IRSA SIAv2: Đang kết nối...
+          </span>
+          <span id="irsaFrameCountBadge" style="font-size:10px; color:#7dd3fc; font-family:var(--font-mono);"></span>
+        </div>
+
+        <!-- PHẦN A: BỘ LỌC 6 CẢM BIẾN DETECTOR (D1 ĐẾN D6) -->
+        <div class="epoch-control-group">
+          <label class="epoch-label">🔬 DẢI PHỔ QUAN SÁT (DETECTOR D1–D6):</label>
+          <div id="detectorPillsBar" class="detector-pills-row">
+            <button type="button" class="det-pill-btn" data-det="1" title="D1: 0.75 - 1.11 µm">D1</button>
+            <button type="button" class="det-pill-btn" data-det="2" title="D2: 1.11 - 1.63 µm">D2</button>
+            <button type="button" class="det-pill-btn" data-det="3" title="D3: 1.63 - 2.43 µm">D3</button>
+            <button type="button" class="det-pill-btn" data-det="4" title="D4: 2.43 - 3.82 µm (Băng nước H2O)">D4</button>
+            <button type="button" class="det-pill-btn" data-det="5" title="D5: 3.82 - 4.42 µm">D5</button>
+            <button type="button" class="det-pill-btn active" data-det="6" title="D6: 4.41 - 5.01 µm (Thiên thể lạnh / Planet X)">D6 🎯</button>
+          </div>
+        </div>
+
+        <!-- PHẦN B: CHỌN CẶP THỜI ĐIỂM (T1 vs T2) -->
+        <div class="epoch-control-group" style="margin-top:8px;">
+          <div class="dual-epoch-grid">
+            <!-- Cột T1 -->
+            <div class="epoch-box epoch-box-t1">
+              <div class="epoch-tag tag-t1">T1: BASELINE (GỐC)</div>
+              <select id="epochSelectT1" class="astro-select select-epoch" title="Chọn thời điểm quan sát ban đầu"></select>
+            </div>
+            <!-- Cột T2 -->
+            <div class="epoch-box epoch-box-t2">
+              <div class="epoch-tag tag-t2">T2: FOLLOW-UP (MỚI)</div>
+              <select id="epochSelectT2" class="astro-select select-epoch" title="Chọn thời điểm quan sát đối chứng"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHẦN C: THANH THỐNG KÊ BASELINE & NÚT AUTO MAX BASELINE -->
+        <div class="baseline-action-row">
+          <span id="baselineStatsBadge" class="baseline-badge">⏱️ Baseline: Δt = 0.0 ngày</span>
+          <button type="button" id="btnAutoMaxBaseline" class="btn-micro" title="Tự động chọn 2 frame có khoảng cách thời gian lớn nhất">
+            ⚡ Max Baseline
+          </button>
+        </div>
+
+        <!-- PHẦN D: DUAL CANVAS PREVIEW (HIỂN THỊ 2 ẢNH CẮT FITS TO RÕ T1 VÀ T2) -->
+        <div class="dual-cutout-preview-row">
+          <div class="cutout-preview-card card-t1" title="Nhấp đúp (Double-Click) để phóng to toàn cảnh ảnh T1">
+            <span class="preview-mini-tag">T1 FITS <span class="zoom-hint-icon">🔍</span></span>
+            <canvas id="cutoutCanvasT1" width="140" height="140"></canvas>
+            <span id="epochDateLabelT1" class="preview-date-label">--</span>
+          </div>
+          <div class="cutout-vs-divider">⚡</div>
+          <div class="cutout-preview-card card-t2" title="Nhấp đúp (Double-Click) để phóng to toàn cảnh ảnh T2">
+            <span class="preview-mini-tag">T2 FITS <span class="zoom-hint-icon">🔍</span></span>
+            <canvas id="cutoutCanvasT2" width="140" height="140"></canvas>
+            <span id="epochDateLabelT2" class="preview-date-label">--</span>
+          </div>
+        </div>
+
+        <!-- Nút khởi chạy Cosmic Motion Animation (P0: Chuỗi Epoch thực tế) -->
+        <div class="motion-launch-bar">
+          <button type="button" id="btnOpenMotionPlayer" class="btn-launch-motion" title="Phát hoạt ảnh chuyển động qua toàn bộ chuỗi Observation Epochs thực tế (Blink / Cross-Fade / I_diff / Export WebM & GIF)">
+            🎬 COSMIC MOTION ANIMATION (ALL EPOCHS)
+          </button>
+          <span id="motionSummaryMini" class="motion-summary-mini">Chờ dữ liệu Epoch...</span>
+        </div>
+
+        <!-- Tóm tắt thiên thể đang chọn -->
+        <div class="target-meta-summary" style="margin-top:8px;">
+          <h3 id="hudObjectName">90377 Sedna</h3>
+          <p id="hudObjectDesc">Thiên thể xa xôi có quỹ đạo lệch tâm kỳ dị nhất Hệ Mặt Trời.</p>
+        </div>
+      </div>
+
+      <!-- KHỐI 2: Kiểm định Cờ Chất Lượng (FLAGS HDU) -->
+      <div class="drawer-section">
+        <div class="section-header">
+          <span class="section-title">🛡️ KIỂM ĐỊNH CHẤT LƯỢNG ẢNH (HDU 4: FLAGS)</span>
+          <span id="hudQualityCode" class="section-tag">Bitmask: 0x0000</span>
+        </div>
+        <div id="hudQualityPill" class="quality-badge quality-clean">
+          🟢 SẠCH NHIỄU (100% Clean Pixel - Tín hiệu chuẩn khoa học)
+        </div>
+        <div style="font-size:11px; color:#94a3b8;">
+          Giúp phân biệt thiên thể thật với nhiễu cảm biến hoặc Tia vũ trụ (Cosmic Ray). Hãy thử chọn <b>Eris</b> ở bảng gợi ý để xem cảnh báo Tia vũ trụ!
+        </div>
+      </div>
+
+      <!-- KHỐI 3: Thông số 6 Lớp Multi-Extension FITS (Metadata Telemetry) -->
+      <div class="drawer-section">
+        <div class="section-header">
+          <span class="section-title">📊 6 LỚP DỮ LIỆU MULTI-EXTENSION FITS</span>
+          <span class="section-tag">Lv2 Calibrated</span>
+        </div>
+        <div class="telemetry-grid">
+          <div class="telemetry-cell">
+            <span class="telemetry-label">🕒 Thời gian chụp (OBS-TIME)</span>
+            <span id="hudObsTime" class="telemetry-val">2025-05-14T08:42:19Z</span>
+          </div>
+          <div class="telemetry-cell">
+            <span class="telemetry-label">📷 Cảm biến (6 DETECTORS)</span>
+            <span id="hudDetector" class="telemetry-val">Array 4 & 5</span>
+          </div>
+          <div class="telemetry-cell">
+            <span class="telemetry-label">💡 HDU 1: IMAGE (Độ sáng)</span>
+            <span id="hudImageFlux" class="telemetry-val">18.42 MJy/sr</span>
+          </div>
+          <div class="telemetry-cell">
+            <span class="telemetry-label">🌫️ HDU 5: ZODI (Sáng nền)</span>
+            <span id="hudZodiFlux" class="telemetry-val">4.15 MJy/sr</span>
+          </div>
+          <div class="telemetry-cell">
+            <span class="telemetry-label">📉 HDU 3: VARIANCE (Sai số)</span>
+            <span id="hudVariance" class="telemetry-val">±0.018 MJy/sr²</span>
+          </div>
+          <div class="telemetry-cell">
+            <span class="telemetry-label">🎯 HDU 6: EPSF & SNR</span>
+            <span id="hudSnr" class="telemetry-val">64.5 (98.4%)</span>
+          </div>
+        </div>
+        <div style="display:none;" id="hudPsf"></div>
+      </div>
+
+      <!-- KHỐI 4: Biểu đồ 102 Dải Bước Sóng (HDU 2: WCS-WAVE) -->
+      <div class="drawer-section">
+        <div class="section-header">
+          <span class="section-title">🌈 HDU 2: WCS-WAVE (PHỔ 102 KÊNH 0.75–5.0µm)</span>
+        </div>
+        <div id="hudSpectralType" style="font-size:11px; color:#7dd3fc; font-weight:600; margin-bottom:4px;">
+          Methane & Water Ice Rich
+        </div>
+        <canvas id="spectrumCanvas" width="340" height="115"></canvas>
+        <div class="action-buttons-row" style="margin-top:8px;">
+          <button id="btnDownloadFits" class="btn-secondary btn-full">
+            📥 Tải Raw .FITS Cutout
+          </button>
+          <button id="btnDownloadPng" class="btn-secondary btn-full">
+            🖼️ Xuất ảnh .PNG
+          </button>
+        </div>
+      </div>
+
+      <!-- KHỐI 5: OUTPUT 3 - Chia sẻ Trạng thái URL (URL State Output cho Người thứ 3) -->
+      <div class="drawer-section">
+        <div class="section-header">
+          <span class="section-title">🔗 OUTPUT 3: CHIA SẺ GÓC NHÌN (URL STATE)</span>
+          <span id="urlSyncBadge" class="sync-badge synced">✅ Đã đồng bộ URL</span>
+        </div>
+        <div style="font-size:11px; color:#cbd5e1;">
+          Tự động cập nhật thanh địa chỉ (Debounce 300ms). Gửi link này cho đồng đội để mở ra đúng tọa độ đang xem:
+        </div>
+        <div class="url-share-row">
+          <input id="shareUrlInput" type="text" class="astro-input" readonly />
+          <button id="btnCopyUrl" class="btn-secondary">🔗 Copy Link</button>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- ========================================================================
+       4. MODAL COSMIC PLAYLISTS (SPOTIFY CỦA VŨ TRỤ)
+       ======================================================================== -->
+  <div id="cosmicPlaylistsModal" class="playlists-modal hidden">
+    <div class="playlists-backdrop" id="playlistsBackdrop"></div>
+    <div class="playlists-content">
+      <div class="playlists-modal-header">
+        <div class="playlists-title-box">
+          <h2>🎧 COSMIC PLAYLISTS — KHÁM PHÁ THEO CHỦ ĐỀ</h2>
+          <p>Dành cho người mới tiếp cận: Trải nghiệm vũ trụ qua những câu chuyện hấp dẫn nhất của kính SPHEREx</p>
+        </div>
+        <button id="btnClosePlaylists" class="btn-close-modal">✕</button>
+      </div>
+
+      <!-- Danh sách Playlists (Album Cards) -->
+      <div id="playlistsAlbumView" class="playlists-albums-grid"></div>
+
+      <!-- Xem chi tiết 1 Playlist & Tracklist -->
+      <div id="playlistDetailView" class="playlist-detail-view hidden">
+        <div class="detail-nav-bar">
+          <button id="btnBackToAlbums" class="btn-secondary">◀ Quay lại Tất cả Playlists</button>
+          <div class="detail-actions">
+            <button id="btnStartTourMode" class="btn-go" style="height:32px; font-size:12px;">
+              ▶️ Bắt đầu Tour tự động (Autoplay)
+            </button>
+          </div>
+        </div>
+        <div id="playlistDetailHeader" class="playlist-detail-header"></div>
+        <div id="playlistTracksList" class="playlist-tracks-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       5. FLOATING TOUR PLAYER HUD (THANH PHÁT TOUR TỰ ĐỘNG)
+       ======================================================================== -->
+  <div id="tourPlayerHUD" class="tour-player-hud hidden">
+    <div class="tour-track-info">
+      <div class="tour-pulsing-disc">🪐</div>
+      <div>
+        <div id="tourTrackTitle" class="tour-track-title">Đang phát: 90377 Sedna</div>
+        <div id="tourTrackTagline" class="tour-track-subtitle">Vết tích số 1 dẫn tới Planet X</div>
+      </div>
+    </div>
+
+    <!-- Thanh tiến trình thời gian chuyển cảnh -->
+    <div class="tour-progress-container">
+      <div id="tourProgressBar" class="tour-progress-bar"></div>
+      <span id="tourTimerLabel" class="tour-timer-label">Chuyển điểm sau: 6s</span>
+    </div>
+
+    <div class="tour-controls">
+      <button id="btnTourPrev" class="btn-icon" title="Thiên thể trước">⏮️</button>
+      <button id="btnTourToggle" class="btn-icon btn-play-pause" title="Tạm dừng / Tiếp tục">⏸️</button>
+      <button id="btnTourNext" class="btn-icon" title="Thiên thể kế tiếp">⏭️</button>
+      <button id="btnTourStop" class="btn-secondary" style="padding:4px 8px; font-size:11px;" title="Dừng tour">✕ Thoát</button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       6. CỬA SỔ PHÓNG TO & SO SÁNH ẢNH TO RÕ CHO NGƯỜI MỚI (DUAL VIEW MODES)
+       ======================================================================== -->
+  <div id="fitsZoomModal" class="fits-zoom-modal hidden">
+    <div class="fits-zoom-backdrop" id="fitsZoomBackdrop"></div>
+    <div class="fits-zoom-container wide-compare-modal">
+      
+      <!-- Header Modal -->
+      <div class="fits-zoom-header">
+        <div class="fits-zoom-title-group">
+          <div class="fits-zoom-tag-row">
+            <span class="zoom-epoch-tag tag-mode-badge">TRẠM SO SÁNH ẢNH ĐA THỜI ĐIỂM SPHEREx</span>
+            <span id="fitsZoomBandBadge" class="zoom-meta-tag">CẢM BIẾN D6 (4.41–5.01 µm)</span>
+            <span id="fitsZoomBaseline" class="zoom-meta-tag tag-clean">Cách nhau: -- ngày</span>
+          </div>
+          <h2 id="fitsZoomTitle">KÍNH SO SÁNH ĐỐI CHỨNG (HIỂN THỊ SIÊU TO RÕ)</h2>
+        </div>
+        <button id="btnCloseFitsZoom" class="btn-close-modal" title="Đóng cửa sổ (ESC hoặc click ra ngoài)">✕</button>
+      </div>
+
+      <!-- 1. DÒNG HƯỚNG DẪN DỄ HIỂU DÀNH CHO NGƯỜI MỚI -->
+      <div class="newbie-tip-banner">
+        <span class="tip-text">
+          <b>Mẹo phát hiện:</b> Các ngôi sao ở xa sẽ <b>đứng bất động</b>. Đốm sáng nào <b>nhảy vị trí</b> giữa 2 lần chụp chính là <b>Hành tinh hoặc Tiểu hành tinh</b> đang di chuyển!
+        </span>
+      </div>
+
+      <!-- 2. THANH ĐIỀU HƯỚNG CHẾ ĐỘ & BỘ PHÓNG ĐẠI (CONTROLS BAR) -->
+      <div class="zoom-mode-switcher-bar">
+        <!-- Nút chọn chế độ xem to rõ -->
+        <div class="mode-buttons-big">
+          <button type="button" id="btnModeSplit" class="btn-mode-card active">
+            <div class="btn-mode-texts">
+              <span class="btn-mode-title">1. ĐẶT CẠNH NHAU</span>
+              <span class="btn-mode-desc">Soi chi tiết cả 2 ảnh cùng lúc</span>
+            </div>
+          </button>
+
+          <button type="button" id="btnModeBlink" class="btn-mode-card">
+            <div class="btn-mode-texts">
+              <span class="btn-mode-title">2. XEM NHẤP NHÁY</span>
+              <span class="btn-mode-desc">Chớp tắt bắt chuyển động như Clyde Tombaugh</span>
+            </div>
+          </button>
+
+          <button type="button" id="btnModeMotion" class="btn-mode-card btn-mode-motion">
+            <div class="btn-mode-texts">
+              <span class="btn-mode-title">3. COSMIC MOTION</span>
+              <span class="btn-mode-desc">Phát chuỗi Epoch thực • Blink / Cross-Fade / Export</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Bộ phóng đại quang học (Magnification Pills) -->
+        <div class="zoom-mag-group">
+          <span class="mag-label">Độ phóng đại:</span>
+          <button type="button" class="btn-mag-pill active" data-mag="1">1x Chuẩn</button>
+          <button type="button" class="btn-mag-pill" data-mag="1.5">1.5x To</button>
+          <button type="button" class="btn-mag-pill" data-mag="2">2x Siêu To</button>
+        </div>
+
+        <!-- Bộ điều tốc chớp nháy (Chỉ hiện ở Blink Mode) -->
+        <div id="blinkControlsWrap" class="blink-speed-panel hidden">
+          <button type="button" id="btnBlinkPlayPause" class="btn-play-pause">Tạm Dừng</button>
+          <div class="speed-slider-group">
+            <span class="speed-icon">Chậm</span>
+            <input type="range" id="blinkSpeedSlider" min="0.5" max="4.0" step="0.5" value="2.0" class="speed-range-input" title="Tốc độ nhấp nháy" />
+            <span class="speed-icon">Nhanh</span>
+          </div>
+          <div id="blinkStatusLed" class="blink-status-led led-t1">
+            <span class="led-dot">●</span> ĐANG HIỆN: ẢNH CŨ
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. KHU VỰC HIỂN THỊ CANVAS SIÊU TO RÕ -->
+      <div class="fits-zoom-body" id="fitsZoomBody">
+        
+        <!-- VIEW A: ĐẶT CẠNH NHAU (SIDE-BY-SIDE: ẢNH 1 - THÔNG SỐ ĐIỂM SOI - ẢNH 2) -->
+        <div id="viewSplitWrapper" class="split-stage-wrap">
+          <!-- Cột Ảnh Cũ (T1) -->
+          <div class="canvas-box-card card-old" id="cardSplitT1">
+            <div class="canvas-header-pill pill-old">
+              <span class="pill-title">1. ẢNH QUÁ KHỨ (LẦN CHỤP TRƯỚC)</span>
+              <span id="labelDateT1" class="pill-date">--</span>
+            </div>
+            <div class="canvas-interactive-wrapper" id="wrapSplitT1">
+              <canvas id="canvasSplitT1" width="440" height="440"></canvas>
+              <div id="crosshairT1" class="friendly-crosshair"></div>
+            </div>
+          </div>
+
+          <!-- BẢNG THÔNG SỐ ĐIỂM SOI (NẰM GIỮA 2 TẤM ẢNH) -->
+          <aside class="fits-zoom-sidebar" id="fitsZoomSidebar">
+            <div class="sidebar-header">
+              <span class="sidebar-title">THÔNG SỐ ĐIỂM SOI</span>
+            </div>
+
+            <div class="sidebar-metric-card card-pixel">
+              <span class="metric-label">Vị trí đang chỉ</span>
+              <span id="hudFriendlyPixel" class="sum-val val-pixel">Rê chuột lên ảnh để soi điểm</span>
+            </div>
+
+            <div class="sidebar-metric-card card-t1">
+              <span class="metric-label">Độ sáng ảnh cũ (Lần 1)</span>
+              <span id="hudFriendlyFluxT1" class="sum-val val-blue">--</span>
+            </div>
+
+            <div class="sidebar-metric-card card-t2">
+              <span class="metric-label">Độ sáng ảnh mới (Lần 2)</span>
+              <span id="hudFriendlyFluxT2" class="sum-val val-orange">--</span>
+            </div>
+
+            <div class="sidebar-metric-card card-diff">
+              <span class="metric-label">Biến đổi độ sáng</span>
+              <span id="hudFriendlyDelta" class="sum-val val-status">Đứng im bình thường</span>
+            </div>
+
+            <div class="sidebar-hint">
+              Rê chuột trên ảnh để kiểm tra quang thông từng pixel giữa 2 thời điểm chụp
+            </div>
+          </aside>
+
+          <!-- Cột Ảnh Mới (T2) -->
+          <div class="canvas-box-card card-new" id="cardSplitT2">
+            <div class="canvas-header-pill pill-new">
+              <span class="pill-title">2. ẢNH HIỆN TẠI (LẦN CHỤP SAU)</span>
+              <span id="labelDateT2" class="pill-date">--</span>
+            </div>
+            <div class="canvas-interactive-wrapper" id="wrapSplitT2">
+              <canvas id="canvasSplitT2" width="440" height="440"></canvas>
+              <div id="crosshairT2" class="friendly-crosshair"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW B: CHỚP NHÁY TRUNG TÂM (BLINK VIEW: 1 CANVAS) -->
+        <div id="viewBlinkWrapper" class="blink-stage-wrap hidden">
+          <div class="canvas-interactive-wrapper blink-main-wrapper" id="wrapBlinkMain">
+            <canvas id="canvasBlinkMain" width="540" height="540"></canvas>
+            <div id="crosshairBlink" class="friendly-crosshair"></div>
+            <div id="blinkScreenBanner" class="blink-screen-tag tag-old">ẢNH QUÁ KHỨ</div>
+          </div>
+        </div>
+
+        <!-- VIEW C: COSMIC MOTION ANIMATION PLAYER (CHUỖI EPOCH THỰC TẾ) -->
+        <div id="viewMotionWrapper" class="motion-stage-wrap hidden">
+          <!-- Cột Trái: Canvas chính + Dual Time Sliders -->
+          <div class="motion-player-main">
+            <div id="motionCrossfadeWarning" class="motion-crossfade-warning hidden">
+              ⚠️ VISUAL CROSS-FADE (NON-OBSERVATIONAL TRANSITION) — Alpha blend chỉ dùng hỗ trợ thị giác, không phải khung hình quan sát thật
+            </div>
+
+            <div class="motion-canvas-box">
+              <canvas id="canvasMotionMain" width="540" height="540"></canvas>
+            </div>
+
+            <!-- Thanh điều khiển phát + Dual Time Sliders -->
+            <div class="motion-timeline-panel">
+              <div class="motion-transport-row">
+                <div class="motion-transport-btns">
+                  <button type="button" id="btnMotionPrev" class="btn-motion-ctrl" title="Epoch trước">⏮ Prev</button>
+                  <button type="button" id="btnMotionPlayPause" class="btn-motion-ctrl btn-motion-play" title="Phát / Tạm dừng (Space)">▶ Play</button>
+                  <button type="button" id="btnMotionNext" class="btn-motion-ctrl" title="Epoch kế tiếp">Next ⏭</button>
+                  <button type="button" id="btnMotionLoop" class="btn-motion-ctrl active" title="Lặp lại chuỗi Epoch">🔁 Loop: ON</button>
+                </div>
+                <span id="motionLoadProgress" class="motion-load-progress">⏳ Ready...</span>
+              </div>
+
+              <!-- SLIDER 1: PHYSICAL TIMELINE (TỶ LỆ MJD THỰC TẾ & DATA GAPS) -->
+              <div class="motion-slider-block">
+                <div class="motion-slider-head">
+                  <span class="motion-slider-title">📅 1. PHYSICAL TIMELINE (Tỷ lệ MJD thực tế — Hiện rõ Data Gaps ~6 tháng)</span>
+                  <span id="motionTimelineSpanLabel" class="motion-slider-meta">--</span>
+                </div>
+                <div class="motion-physical-wrap">
+                  <canvas id="motionPhysicalTimeline" width="620" height="44"></canvas>
+                  <div id="motionTimelineTooltip" class="motion-timeline-tooltip hidden"></div>
+                </div>
+              </div>
+
+              <!-- SLIDER 2: DISCRETE STEP SLIDER (CHỈ NHẢY VÀO EPOCH TỒN TẠI, STEP = 1) -->
+              <div class="motion-slider-block">
+                <div class="motion-slider-head">
+                  <span class="motion-slider-title">🎯 2. DISCRETE STEP SLIDER (Chỉ dừng tại Observation Epoch có thật)</span>
+                  <span id="motionDiscreteStepLabel" class="motion-slider-meta">Epoch 1 / 1 (Step = 1)</span>
+                </div>
+                <input id="motionDiscreteSlider" type="range" min="0" max="0" step="1" value="0" class="motion-discrete-range" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Cột Phải: Mode, Playback Speed (Clyde Tombaugh), Telemetry HUD & Export WebM/GIF -->
+          <aside class="motion-sidebar">
+            <div class="motion-panel-card">
+              <div class="motion-card-title">🎬 CHẾ ĐỘ CHUYỂN CẢNH (NO INTERPOLATION)</div>
+              <div class="motion-mode-toggle-row">
+                <button type="button" id="btnMotionModeBlink" class="btn-motion-mode active" title="Nhảy trực tiếp 100% giữa các khung hình quan sát thật">
+                  ⚡ Blink (100% Real)
+                </button>
+                <button type="button" id="btnMotionModeCrossfade" class="btn-motion-mode" title="Pha alpha 35% cuối chu kỳ (kèm cảnh báo)">
+                  🌓 Cross-Fade (35%)
+                </button>
+              </div>
+              <div class="motion-layer-toggle-row">
+                <button type="button" id="btnMotionToggleDiff" class="btn-motion-toggle" title="Hiển thị ảnh hiệu số I_diff = I(Epoch_i) - I(Baseline)">
+                  🔬 I_diff Overlay
+                </button>
+                <button type="button" id="btnMotionToggleWcs" class="btn-motion-toggle active" title="Căn chỉnh WCS North-Up East-Left chống lật góc 180°">
+                  🧭 WCS North-Up: ON
+                </button>
+              </div>
+            </div>
+
+            <div class="motion-panel-card">
+              <div class="motion-card-title">
+                ⏱️ TỐC ĐỘ PHÁT (TOMBAUGH STANDARD)
+                <span id="motionSpeedLabel" class="motion-speed-badge">2.0 Hz (2.0x)</span>
+              </div>
+              <div class="motion-speed-pills">
+                <button type="button" class="btn-motion-speed-pill" data-hz="0.5">0.5x</button>
+                <button type="button" class="btn-motion-speed-pill" data-hz="1.0">1x (1Hz)</button>
+                <button type="button" class="btn-motion-speed-pill active" data-hz="2.0">2x (2Hz)</button>
+                <button type="button" class="btn-motion-speed-pill" data-hz="3.0">3 Hz</button>
+                <button type="button" class="btn-motion-speed-pill" data-hz="4.0">4x</button>
+              </div>
+              <input id="motionSpeedSlider" type="range" min="0.5" max="4.0" step="0.5" value="2.0" class="motion-speed-range" />
+            </div>
+
+            <div class="motion-panel-card motion-telemetry-card">
+              <div class="motion-card-title">📡 HUD TELEMETRY THỜI GIAN THỰC</div>
+              <div class="motion-hud-row">
+                <span class="motion-hud-lbl">OBSERVATION UTC</span>
+                <span id="motionHudUtc" class="motion-hud-val">--</span>
+              </div>
+              <div class="motion-hud-row">
+                <span class="motion-hud-lbl">MODIFIED JULIAN DATE</span>
+                <span id="motionHudMjd" class="motion-hud-val">--</span>
+              </div>
+              <div class="motion-hud-row">
+                <span class="motion-hud-lbl">BAND / COLLECTION</span>
+                <span id="motionHudBand" class="motion-hud-val">--</span>
+              </div>
+              <div class="motion-hud-divider"></div>
+              <div class="motion-hud-row">
+                <span class="motion-hud-lbl">PLAYBACK RATE (ANIMATION)</span>
+                <span id="motionHudPlaybackRate" class="motion-hud-val val-cyan">2.0 Hz (2.0 epochs/s)</span>
+              </div>
+              <div class="motion-hud-row">
+                <span class="motion-hud-lbl">PHYSICAL MOTION Δt (REAL)</span>
+                <span id="motionHudPhysicalDt" class="motion-hud-val val-green">0.00 days</span>
+              </div>
+              <div class="motion-hud-row">
+                <span class="motion-hud-lbl">APPARENT MOTION / PM</span>
+                <span id="motionHudApparentMotion" class="motion-hud-val">--</span>
+              </div>
+              <div class="motion-hud-row">
+                <span class="motion-hud-lbl">I_diff DIPOLE TELEMETRY</span>
+                <span id="motionHudDiffStats" class="motion-hud-val">Off (Raw Real Epochs)</span>
+              </div>
+            </div>
+
+            <div class="motion-panel-card">
+              <div class="motion-card-title">💾 XUẤT VIDEO / ẢNH ĐỘNG (CANVAS STREAM)</div>
+              <div class="motion-export-row">
+                <button type="button" id="btnMotionExportWebm" class="btn-motion-export">🎥 Export WebM</button>
+                <button type="button" id="btnMotionExportGif" class="btn-motion-export">🎞️ Export GIF</button>
+              </div>
+              <div id="motionExportStatus" class="motion-export-status">Sẵn sàng xuất trực tiếp từ HTML5 Canvas</div>
+            </div>
+          </aside>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/curated-data.js?v=2.5"></script>
+  <script src="js/spherex-100-samples.js?v=2.5"></script>
+  <script src="js/validator.js?v=2.5"></script>
+  <script src="js/fits-parser.js?v=2.5"></script>
+  <script src="js/gif-encoder.js?v=2.5"></script>
+  <script src="js/cosmic-motion.js?v=2.5"></script>
+  <script src="js/sky-engine.js?v=2.5"></script>
+  <script src="js/app.js?v=2.5"></script>
+</body>
+</html>
